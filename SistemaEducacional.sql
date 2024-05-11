@@ -34,6 +34,14 @@ CREATE TABLE matriculas(
 	id_cursos int REFERENCES curso
 )
 
+-- Tabela cursos_disciplinas --
+CREATE TABLE curso_disc(
+	id_curso int REFERENCES cursos,
+	id_disc int REFERENCES disciplinas
+)
+
+SELECT * FROM curso_disc
+
 -----    INSERIR DADOS   -----
 
 -- Dados Alunos --
@@ -45,12 +53,12 @@ INSERT INTO alunos (cpf,nome_aluno,idade,endereco, contato) VALUES
 ('78912345600', 'Luiza Costa', 21, 'Alameda das Águias, 654', '(55) 7890-1234')
 
 -- Dados Disciplinas --
-INSERT INTO disciplinas (nome_disciplina, optativa) VALUES
+INSERT INTO disciplinas (nome_disc, optativa) VALUES
 ('Cálculo', true),
-('Elétrica', true),
-('Ética', false),
-('Banco de Dados', true),
-('Inglês', false)
+('Culinária Básica', false),
+('Carpintaria', false),
+('Desenho Orientado', true),
+('Algoritmos', true)
 
 -- Dados Cursos --
 INSERT INTO curso (nome_curso) VALUES
@@ -75,7 +83,9 @@ INSERT INTO matriculas (cpf,status,id_cursos) VALUES
 ('45678912300','Concluído', 3),
 ('32165498700','Cursando', 4),
 ('78912345600','Cursando', 5)
---Tive que dropar pq esqueci de colocar alguns dados
+
+-- dropei pra adicionar dados
+
 DROP TABLE matriculas;
 
 -----  APLICANDO FILTROS -----
@@ -87,10 +97,64 @@ WHERE nome_aluno = 'Maria' OR ra = (SELECT ra FROM matriculas
 
 --/Dado o nome de um departamento, exibir o nome de todos os cursos associados a ele\--
 SELECT nome_curso
-FROM cursos c NATURAL INNER JOIN departamentos
+FROM cursos NATURAL INNER JOIN departamentos
 WHERE area = 'Engenharia'
 
 --/Dado o nome de uma disciplina, exibir a qual ou quais cursos ela pertence\--
-
+SELECT c.nome_curso
+FROM cursos c 
+NATURAL INNER JOIN curso_disc cd 
+INNER JOIN disciplinas d ON cd.id_disc = d.id_disc 
+WHERE d.nome_disc = 'Cálculo';
 
 --/Dado o CPF de um aluno, exibir quais disciplinas ele está cursando\--
+SELECT d.nome_disc
+FROM matriculas m
+INNER JOIN curso_disc cd ON m.id_curso = cd.id_curso
+INNER JOIN disciplinas d ON cd.id_disc = d.id_disc
+WHERE m.cpf = '98765432100';
+
+-- Filtrar todos os alunos matriculados em um determinado curso. --
+SELECT a.nome_aluno
+FROM alunos a
+INNER JOIN matriculas m ON a.cpf = m.cpf
+WHERE m.id_curso = (SELECT id_curso FROM cursos 
+					WHERE nome_curso = 'Engenharia da Computação');
+
+-- Filtrar todos os alunos matriculados em determinada disciplina. --
+SELECT a.nome_aluno
+FROM alunos a
+INNER JOIN matriculas m ON a.cpf = m.cpf
+INNER JOIN curso_disc cd ON m.id_curso = cd.id_curso
+INNER JOIN disciplinas d ON cd.id_disc = d.id_disc
+WHERE d.nome_disc = 'Carpintaria';
+
+-- Filtrar alunos formados. --
+SELECT nome_aluno
+FROM alunos
+INNER JOIN matriculas ON alunos.cpf = matriculas.cpf
+WHERE matriculas.status = 'Concluído';
+
+-- Filtrar alunos ativos --
+SELECT nome_aluno
+FROM alunos
+INNER JOIN matriculas ON alunos.cpf = matriculas.cpf
+WHERE matriculas.status = 'Cursando';
+
+-- Apresentar a quantidade de alunos ativos por curso. --
+SELECT c.nome_curso, COUNT(*) AS quantidade_alunos_ativos
+FROM cursos c
+INNER JOIN matriculas m ON c.id_curso = m.id_curso
+WHERE m.status = 'Cursando'
+GROUP BY c.nome_curso;
+
+-- Apresentar a quantidade de alunos ativos por disciplina. --
+SELECT d.nome_disc, COUNT(*) AS quantidade_alunos_ativos
+FROM disciplinas d
+INNER JOIN curso_disc cd ON d.id_disc = cd.id_disc
+INNER JOIN matriculas m ON cd.id_curso = m.id_curso
+WHERE m.status = 'Cursando'
+GROUP BY d.nome_disc;
+
+
+
